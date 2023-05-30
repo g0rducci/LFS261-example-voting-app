@@ -1,29 +1,64 @@
 pipeline {
-    agent any
-    tools {
-        nodejs 'NodeJS 19.0.1'
-    }
+    agent none
+
     stages {
-        stage('build') {
+        stage('Build') {
             when {
                 changeset "**/result/**"
             }
-            steps {
-                echo 'Compiling result app..'
-                dir('worker') {
-                    sh 'npm install'
+            agent {
+                docker {
+                    image 'node:19.0.1-alpine'
+                    reuseNode true
                 }
             }
+            steps {
+                echo 'Building result app...'
+                sh 'npm install && npm audit fix'
+            }
         }
-        stage('test') {
+        stage('Test') {
             when {
                 changeset "**/result/**"
             }
+            agent {
+                docker {
+                    image 'node:19.0.1-alpine'
+                    reuseNode true
+                }
+            }
             steps {
-                echo 'Running Unit Tests on result app..'
-                dir('result') {
-                    sh 'npm install'
-                    sh 'npm test'
+                echo 'Running Unit Tests on result app...'
+                sh 'npm test'
+            }
+        }
+        stage('Docker Build') {
+            when {
+                changeset "**/result/**"
+            }
+            agent {
+                docker {
+                    image 'docker:latest'
+                    reuseNode true
+                }
+            }
+            steps {
+                echo 'Building Docker image...'
+                sh 'docker build -t g0rducci/result:v3 .'
+            }
+        }
+    
+        stage('docker-package'){
+            agent any
+            steps {
+                echo 'Packaging worker app with docker'
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerlogin') {
+                        def workerImage = docker.build("g0rducci/worker:v${env.BUILD_ID}", "./worker")
+                        workerImage.push()
+                        workerImage.push("${env.BRANCH_NAME}")
+                        workerImage.push("latest")
+                    }
                 }
             }
         }
