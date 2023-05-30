@@ -1,6 +1,6 @@
 Example Voting App
 =========
-fetch1
+fetch1docker
 
 Getting started
 ---------------
