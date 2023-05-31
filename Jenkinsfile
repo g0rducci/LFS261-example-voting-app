@@ -205,7 +205,7 @@ pipeline {
       steps {
         echo 'Packaging vote app with docker'
         script {
-          docker.withRegistry('https://index.docker.io/v1/', 'g0rducci') {
+          docker.withRegistry('https://index.docker.io/v1/', 'dockerhub') {
             // ./vote is the path to the Dockerfile that Jenkins will find from the Github repo
             def voteImage = docker.build("g0rducci/vote:${env.GIT_COMMIT}", "./vote")
             voteImage.push()
